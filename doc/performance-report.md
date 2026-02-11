@@ -16,7 +16,7 @@ This project explores three categories of hardware optimization covered in the s
 
 ## Implementation
 
-### Week 1: Baseline Scalar Engine
+### Baseline Scalar Engine
 
 The baseline consists of three components:
 
@@ -26,7 +26,7 @@ The baseline consists of three components:
 
 Deletion uses an O(1) swap-with-last strategy backed by an `idIndex` map. The initial implementation used a single global `sync.RWMutex` for thread safety.
 
-### Week 2: ARM NEON SIMD Optimization
+### ARM NEON SIMD Optimization
 
 Since the target platform is Apple Silicon (arm64), we implemented NEON-accelerated distance functions in Go assembly (`distance_arm64.s`).
 
@@ -49,7 +49,7 @@ A tail loop handles groups of 4, and a scalar epilogue handles 0-3 remaining ele
 
 Both `dotProductNEON` and `euclideanDistanceSquaredNEON` share this structure. The Euclidean variant adds an `FSUB` step before the fused multiply-accumulate. Platform dispatch uses Go build tags: `distance_arm64.go` routes to NEON when `len >= 4`, and `distance_generic.go` falls back to scalar on non-arm64 targets.
 
-### Week 3: Sharded Parallel Search
+### Sharded Parallel Search
 
 The global `sync.RWMutex` serializes all operations. We replaced it with **16 independent shards**, each with its own `RWMutex` and data slice:
 
@@ -74,9 +74,9 @@ type shard struct {
 
 This design eliminates lock contention between search workers — each shard is read-locked independently — and allows concurrent reads with writes to different shards.
 
-### Week 4: SoA Memory Layout
+### SoA Memory Layout
 
-The AoS (Array of Structures) layout from Week 1 stored each vector as a separate `[]float32` slice, causing pointer chasing and scattered memory access. We restructured to SoA (Structure of Arrays):
+The original AoS (Array of Structures) layout stored each vector as a separate `[]float32` slice, causing pointer chasing and scattered memory access. We restructured to SoA (Structure of Arrays):
 
 ```go
 type shard struct {
@@ -131,7 +131,7 @@ Cosine search is ~2.8x slower than Euclidean because it computes three distance-
 
 ### Memory Layout: AoS vs SoA
 
-To quantify the impact of the Week 4 memory layout change, we benchmarked a standalone AoS search implementation (each vector as a separate `[]float32` slice) against the production SoA store (contiguous `[]float32` per shard). Both use the same NEON distance functions and search algorithm; only the memory layout differs.
+To quantify the impact of the memory layout change, we benchmarked a standalone AoS search implementation (each vector as a separate `[]float32` slice) against the production SoA store (contiguous `[]float32` per shard). Both use the same NEON distance functions and search algorithm; only the memory layout differs.
 
 | Layout | QPS   | P50 Latency | P99 Latency | P99.9 Latency | Speedup |
 |--------|------:|------------:|------------:|--------------:|--------:|
