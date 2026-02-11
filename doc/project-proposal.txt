@@ -1,0 +1,19 @@
+﻿Exploiting DLP and TLP for High-Performance Vector Similarity Search
+
+
+Goal
+To design and implement a highly optimized in-memory vector similarity search kernel, focusing on maximizing hardware utilization through Data-Level Parallelism (SIMD) and Thread-Level Parallelism (multicore synchronization).
+Motivation
+Vector search (k-NN) is the computational backbone of modern AI applications (RAG, Semantic Search). However, naive implementations suffer from poor cache locality and underutilization of modern CPU vector units. This project aims to investigate the architectural bottlenecks of high-dimensional vector search and demonstrate how low-level architectural optimizations (SIMD instructions, cache-aware memory layouts) impact throughput and latency.
+Implementation Plan
+1. Baseline Implementation: Develop a reference scalar implementation of Euclidean and Cosine distance in Go using a standard Array of Structures (AoS) layout.
+2. SIMD Optimization (DLP): Implement a hardware-abstraction layer using Go build tags to support architecture-specific optimizations. I will analyze the speedup provided by explicit NEON vectorization versus the Go compiler's auto-vectorization.
+* Primary Target (ARM64): Implement ARM NEON intrinsics (via CGO) to leverage 128-bit vector registers on the local Apple chip laptop.
+* Secondary Target (x86-64): Implement AVX2 intrinsics (via CGO) to demonstrate architectural portability.
+3. Parallelism & Synchronization (TLP): Implement a concurrent search strategy using a worker-pool model. I will evaluate synchronization overhead by comparing coarse-grained global locks against fine-grained sharded locks to minimize contention during concurrent updates and reads.
+4. Performance Profiling: I will profile the application to measure IPC, L1/L2 cache miss rates, and memory bandwidth saturation, identifying whether the workload is compute-bound or memory-bound on the test architecture.
+Expected Results
+* A fully functional vector search engine core.
+* Performance benchmarks comparing Scalar vs. SIMD implementations (aiming for ~4x speedup on NEON hardware).
+* Scalability analysis showing performance scaling across 1 to N cores.
+* A report detailing the impact of memory layout (AoS vs. SoA) on cache coherence traffic and miss rates.

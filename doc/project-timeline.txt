@@ -1,0 +1,58 @@
+﻿📅 Project Timeline: "Exploiting DLP and TLP in Vector Search"
+Week 1: The Baseline & Infrastructure (Jan 22 – Jan 28)
+Goal: A working scalar vector engine and a benchmarking suite.
+* Syllabus Connection: Memory Consistency (Week 3) - Think about how your data structures are laid out in memory.
+* Tasks:
+   * Day 1-2: Implement the VectorStore struct and Insert/Search functions in pure Go (Scalar).
+   * Day 3: Implement EuclideanDistance and CosineSimilarity using standard loops.
+   * Day 4-5: Crucial Step: Build the Benchmark Harness. Create a test that generates 100k random vectors, runs 1,000 queries, and reports "Queries Per Second (QPS)" and "P99 Latency."
+   * Deliverable: A baseline QPS number (e.g., "50 QPS"). This is the number you will try to beat.
+Week 2: Data Level Parallelism / SIMD (Jan 29 – Feb 4)
+Goal: 4x-8x Speedup using AVX2.
+* Syllabus Connection: Jan 29: SIMD / Systolic Arrays (Week 4).
+* Tasks:
+   * Day 1: Learn avo. Follow a basic tutorial to generate a "Dot Product" function in Go Assembly.
+   * Day 2-3: Implement EuclideanDistance_AVX2 using avo. Use YMM registers (256-bit) to process 8 float32s at once.
+   * Day 4: Integrate this assembly function into your engine.
+   * Day 5: Benchmark. Compare Scalar vs. AVX2.
+* Risk Checkpoint: If avo is too hard, switch to CGO and call a C function using <immintrin.h> (AVX intrinsics). Do not get stuck here for more than 3 days.
+* Deliverable: A chart showing "Scalar Speed" vs "SIMD Speed."
+Week 3: Thread Level Parallelism & Synchronization (Feb 5 – Feb 11)
+Goal: Scale across multiple cores using Sharded Locks.
+* Syllabus Connection: Feb 3: Multi-agent Memory Systems (Week 5) and Jan 27: Synchronization.
+* Tasks:
+   * Day 1-2: Parallelize Search. Split the vector array into $N$ chunks (where $N=$ number of CPU cores). Launch $N$ goroutines to search chunks in parallel.
+   * Day 3-4: Handle Writes (Synchronization). Instead of one global sync.RWMutex (which bottlenecks everything), implement Sharded Locks.
+      * Create 16 "Shards," each with its own Mutex and Vector slice.
+      * Map input vectors to shards using Hash(ID) % 16.
+   * Day 5: Benchmark scalability. Does performance double when you go from 1 core to 2 cores?
+* Deliverable: Scalability graph (X-axis: Cores, Y-axis: QPS).
+Week 4: Memory Hierarchy & Profiling (Feb 12 – Feb 18)
+Goal: Cache optimization and "The Architect's Analysis."
+* Syllabus Connection: Cache Coherence (Week 2) & Memory Consistency.
+* Tasks:
+   * Day 1-2: The Experiment (AoS vs SoA).
+      * Refactor your storage to use SoA (Structure of Arrays): one giant []float32 for all data.
+      * Compare performance against your Week 1 (AoS) implementation.
+   * Day 3-4: Profiling. Use Linux perf or Go's pprof.
+      * Measure L1/L2 Cache Misses.
+      * Measure Instruction per Cycle (IPC).
+   * Day 5: Analyze the data. Did SoA actually reduce cache misses? (If not, explain why in your report—negative results are valid science!).
+* Deliverable: "Memory Layout Analysis" section of your report.
+Week 5: Final Report & Polish (Feb 19 – Feb 26)
+Goal: Synthesis and Presentation.
+* Tasks:
+   * Day 1-2: Aggregate all data. You should have three key charts:
+      1. SIMD Impact (Scalar vs AVX2).
+      2. Scalability (1 vs 4 vs 8 Cores).
+      3. Memory Layout (AoS vs SoA).
+   * Day 3: Write the report. Structure it like a research paper: Abstract, Motivation (Syllabus links), Implementation, Evaluation, Conclusion.
+   * Day 4: Clean up the code (add comments, README).
+   * Day 5: Submit!
+________________
+
+
+🛡️ Risk Management Strategy
+* If Week 2 (SIMD) fails: If you can't get AVX working by Feb 1st, drop it. Use the standard Go benchmark as "Scalar" and use a C-library (like BLAS) via CGO as your "Optimized" version. You can still write the report comparing "Native Go" vs "External Library."
+* If Week 3 (Locks) is buggy: Revert to a single global lock. In your report, explain why a global lock limits scalability (this is still good architectural analysis).
+* If Week 4 (SoA) is too hard: Drop the code implementation. Instead, do a theoretical analysis in your report calculating the expected cache line waste of AoS.
